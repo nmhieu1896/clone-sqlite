@@ -18,12 +18,22 @@ fn main() -> Result<()> {
             let mut file = File::open(&args[1])?;
             let mut header = [0; 100];
             file.read_exact(&mut header)?;
+            println!("Header: \n{}", String::from_utf8_lossy(&header));
 
-            // The page size is stored at the 16th byte offset, using 2 bytes in big-endian order
-            #[allow(unused_variables)]
             let page_size = u16::from_be_bytes([header[16], header[17]]);
+            println!("database page size: {}", page_size); // 4096 bytes long
 
-            println!("database page size: {}", page_size);
+            let mut body = vec![0; (page_size - 100).into()];
+            file.read_exact(&mut body)?;
+            println!(
+                "number of tables: {}",
+                String::from_utf8_lossy(&body)
+                    .matches("CREATE TABLE")
+                    .count()
+                    - String::from_utf8_lossy(&body)
+                        .matches("CREATE TABLE sqlite_")
+                        .count()
+            );
         }
         _ => bail!("Missing or invalid command passed: {}", command),
     }
